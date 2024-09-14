@@ -9,8 +9,10 @@ docker exec tigergraph //home/tigergraph/tigergraph/app/4.1.0/cmd/gsql "CREATE G
 docker exec tigergraph //home/tigergraph/tigergraph/app/4.1.0/cmd/gsql "INSTALL DATASET"
 
 docker cp ../datasets/ml-32m/movies.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/movies.csv
-docker cp ../datasets/ml-32m/movies.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/tags.csv
-docker cp ../datasets/ml-32m/movies.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/ratings.csv
+docker cp ../datasets/ml-32m/tags.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/tags.csv
+docker cp ../datasets/ml-32m/ratings.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/ratings.csv
+docker cp ../datasets/ml-32m/genres.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/genres.csv
+docker cp ../datasets/ml-32m/users.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/users.csv
 
 docker exec tigergraph //home/tigergraph/tigergraph/app/4.1.0/cmd/gsql "SHOW GRAPH movielens"
 
