@@ -38,8 +38,8 @@ LIMIT 10;
 // 4. Find Top Genres by Average Rating
 // This query calculates the average rating for each genre by aggregating the ratings for all movies in that genre.
 
-MATCH (m:Movie)-[:HAS_GENRE]->(g:Genre)<-[:RATED]-(u:User)
-WITH g.name AS genre, AVG(u.rating) AS avgRating
+MATCH (u:User)-[r:RATED]->(m:Movie)-[:HAS_GENRE]->(g:Genre)
+WITH g.name AS genre, AVG(r.rating) AS avgRating
 RETURN genre, avgRating
 ORDER BY avgRating DESC
 LIMIT 5;
@@ -52,7 +52,7 @@ LIMIT 5;
 // This query identifies pairs of users who frequently tag the same movies, using the Jaccard Similarity.
 
 MATCH (u1:User)-[:TAGGED]->(m:Movie)<-[:TAGGED]-(u2:User)
-WHERE u1.id <> u2.id
+WHERE u1.userId <> u2.userId
 WITH u1, u2, COUNT(m) AS commonTags
 MATCH (u1)-[:TAGGED]->(m1:Movie)
 WITH u1, u2, commonTags, COUNT(m1) AS totalTags1
@@ -60,7 +60,7 @@ MATCH (u2)-[:TAGGED]->(m2:Movie)
 WITH u1, u2, commonTags, totalTags1, COUNT(m2) AS totalTags2
 WITH u1, u2, commonTags, totalTags1, totalTags2,
      (commonTags * 1.0) / (totalTags1 + totalTags2 - commonTags) AS jaccard
-RETURN u1.id AS user1, u2.id AS user2, jaccard
+RETURN u1.userId AS user1, u2.userId AS user2, jaccard
 ORDER BY jaccard DESC
 LIMIT 10;
 
