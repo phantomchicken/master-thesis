@@ -1,0 +1,16 @@
+version: '3'
+services:
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j
+    environment:
+      - NEO4J_AUTH=neo4j/password        # Set your Neo4j password here
+      - NEO4J_PLUGINS=["apoc", "graph-data-science"] # Load APOC and GDS plugins
+      - NEO4J_dbms_security_procedures_unrestricted=gds.*,graph-data-science.*,apoc.*  # Allow unrestricted access to APOC and GDS procedures
+      - NEO4J_dbms_memory_pagecache_size=2G  # Memory for page cache
+      - NEO4J_dbms_memory_heap_max__size=4G  # Max heap memory
+      - NEO4J_dbms_memory_transaction_total_max=6G  # Max transaction memory
+ 
+    ports:
+      - "7474:7474"                      # HTTP access
+      - "7687:7687"                      # Bolt access

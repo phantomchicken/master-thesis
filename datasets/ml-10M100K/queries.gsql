@@ -1,0 +1,193 @@
+CREATE OR REPLACE DISTRIBUTED QUERY testgsql(/* Parameters here */) FOR GRAPH movielens { 
+  result = SELECT u
+           FROM User:u
+           LIMIT 5;
+  print result;
+}
+
+
+INTERPRET QUERY () { 
+  result = SELECT m
+           FROM Movie:m
+           LIMIT 5;
+  print result;
+}
+
+
+INTERPRET QUERY () { 
+  result = SELECT m
+           FROM Movie:m
+           LIMIT 5;
+  PRINT result [result.title];
+}
+//////////////
+INTERPRET QUERY () { 
+  SumAccum<FLOAT> @totalRating;
+  SumAccum<INT> @ratingCount;
+  AvgAccum @avgRating;
+  
+  RatingsAccum = SELECT m
+                 FROM Movie:m -(RATED:r)- User:u
+                 ACCUM m.@totalRating += r.rating, m.@ratingCount += 1
+                 POST-ACCUM m.@avgRating = m.@totalRating / m.@ratingCount;
+  
+  PRINT RatingsAccum [RatingsAccum.title, RatingsAccum.@avgRating];
+}
+
+    2
+    INTERPRET QUERY () { 
+    SumAccum<FLOAT> @totalRating;
+    SumAccum<INT> @ratingCount;
+    AvgAccum @avgRating;
+    
+    RatingsAccum = SELECT m
+                    FROM Movie:m -(RATED:r)- User:u
+                    ACCUM m.@totalRating += r.rating, m.@ratingCount += 1
+                    POST-ACCUM m.@avgRating = m.@totalRating / m.@ratingCount
+                    ORDER BY m.@avgRating DESC
+                    LIMIT 5;
+    PRINT RatingsAccum [RatingsAccum.title, RatingsAccum.@avgRating];
+  }
+
+    4
+    INTERPRET QUERY () FOR GRAPH movielenssmall { 
+    SetAccum<STRING> @@usersRated;
+
+    UsersRated = SELECT u
+                FROM User:u -(RATED)-> Movie:m
+                WHERE m.title == "Toy Story (1995)"
+                ACCUM @@usersRated += u.userId;
+
+    PRINT @@usersRated;
+    }
+
+    6
+    INTERPRET QUERY () FOR GRAPH movielenssmall {
+    SumAccum<INT> @ratingCount;
+    
+    MostRatings = SELECT u
+                    FROM User:u -(RATED)-> Movie:m
+                    ACCUM u.@ratingCount += 1
+                    ORDER BY u.@ratingCount DESC
+                    LIMIT 1;
+    
+    PRINT MostRatings [MostRatings.userId, MostRatings.@ratingCount];
+    }
+
+    7
+    INTERPRET QUERY () FOR GRAPH movielenssmall {
+    // Accumulators
+    SumAccum<FLOAT> @@ratingSum;
+    SumAccum<FLOAT> @@ratingSquaredSum;
+    ListAccum<FLOAT> @@ratings;
+    AvgAccum @@avgRating;
+
+    // Step 1: Collect ratings and compute sums
+    ForrestGumpRatings = SELECT m
+                        FROM Movie:m -(RATED:r)- User:u
+                        WHERE m.title == "Forrest Gump (1994)"
+                        ACCUM @@ratingSum += r.rating,
+                                @@ratingSquaredSum += pow(r.rating, 2),
+                                @@ratings += r.rating;
+
+    // Step 2: Calculate the average
+    ForrestGumpAverage = SELECT m
+                        FROM Movie:m
+                        WHERE m.title == "Forrest Gump (1994)"
+                        POST-ACCUM @@avgRating += @@ratingSum / SIZE(@@ratings);
+
+    // Step 3: Calculate variance and standard deviation
+    PRINT "Average Rating:", @@avgRating;
+    PRINT "Variance:", (@@ratingSquaredSum / SIZE(@@ratings)) - pow(@@avgRating, 2);
+    PRINT "Standard Deviation:", sqrt((@@ratingSquaredSum / SIZE(@@ratings)) - pow(@@avgRating, 2));
+    }
+
+    1
+    INTERPRET QUERY () FOR GRAPH movielenssmall {
+    Movies = SELECT m
+            FROM Movie:m -(HAS_GENRE)-> Genre:g
+            WHERE g.name == "Crime";
+
+    PRINT Movies [Movies.title];
+    }
+
+    3
+    INTERPRET QUERY () FOR GRAPH movielenssmall {
+    MapAccum<STRING, INT> @@genreCount;
+
+    // Select each genre and count its movies
+    GenreCount = SELECT g
+                FROM Movie:m -(HAS_GENRE)-> Genre:g
+                ACCUM @@genreCount += (g.name -> 1);
+
+    PRINT @@genreCount;
+    }
+
+    INTERPRET QUERY () FOR GRAPH movielenssmall {
+    MapAccum<STRING, INT> @@genreCount;
+    
+    // Step 1: Count the number of movies in each genre
+    GenreCount = SELECT g
+                 FROM Movie:m -(HAS_GENRE)-> Genre:g
+                 ACCUM @@genreCount += (g.name -> 1);
+    
+    // Step 2: Sort and return the genre with the most movies
+    SortedGenre = SELECT g
+                  FROM Genre:g
+                  ORDER BY @@genreCount.get(g.name) DESC
+                  LIMIT 1;
+
+    // Print the genre with the most movies and its count
+    PRINT SortedGenre[SortedGenre.name, @@genreCount.get(SortedGenre.name)];
+}
+    5
+    INTERPRET QUERY () FOR GRAPH movielenssmall {
+    // Accumulators
+    MapAccum<STRING, INT> @@userCount;
+
+    // Step 1: Count the number of distinct users who rated each movie
+    MovieUserCount = SELECT m
+                     FROM Movie:m -(RATED)-> User:u
+                     ACCUM @@userCount += (m.title -> 1);
+
+    // Step 2: Sort movies by distinct user count in descending order and limit to 5
+    TopMovies = SELECT m
+                FROM Movie:m
+                ORDER BY @@userCount.get(m.title) DESC
+                LIMIT 5;
+
+    // Step 3: Print the top 5 movies with their distinct user count
+    PRINT TopMovies[TopMovies.title, @@userCount.get(TopMovies.title)];
+}
+
+PAGERANK
+INTERPRET QUERY () FOR GRAPH movielenssmall SYNTAX v2 {
+  SumAccum<FLOAT> @rank;
+
+  // Perform PageRank calculation
+  PageRank = SELECT m FROM Movie:m - (RATED:e) - User:u
+    ACCUM m.@rank += e.rating
+    ORDER BY m.@rank DESC LIMIT 10;
+
+  PRINT PageRank;
+}
+
+RUN QUERY tg_louvain (    ["User", "Movie", "Genre"],     ["RATED", "TAGGED", "HAS_GENRE"],     "RATED",     10,     "",     "",     True)
+// or without RATED
+    "AllVertexCount": 82266
+  },
+    "FinalCommunityCount": 81525
+RUN QUERY tg_louvain (
+    ["User", "Movie", "Genre"],          -- v_type_set
+    ["RATED", "TAGGED", "HAS_GENRE"],    -- e_type_set
+    "",                                  -- wt_attr (no weight attribute in this case)
+    10,                                  -- maximum_iteration
+    "",                                  -- result_attribute (if not storing community IDs)
+    "",                                  -- file_path (if not saving to a file)
+    True                                 -- print_info (to output results to JSON)
+);
+
+
+
+
+RUN QUERY tg_betweenness_cent (    ["Movie"],    ["RATED"],    "",    10,    10)

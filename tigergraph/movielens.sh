@@ -16,6 +16,12 @@ docker cp ../datasets/ml-32m/users.csv tigergraph:/home/tigergraph/tigergraph/da
 
 docker exec tigergraph //home/tigergraph/tigergraph/app/4.1.0/cmd/gsql "SHOW GRAPH movielens"
 
+# running algorithms
+#docker exec -tigergraph sh
+#//home/tigergraph/tigergraph/app/4.1.0/cmd//gsql SET query_timeout=60
+# gsql
+# USE GRAPH movielens
+# RUN QUERY tg_betweenness_cent 
 
 # INTERPRET QUERY (/* Parameters here */) FOR GRAPH movielens { 
 #   Start = {Movie.*};
@@ -41,6 +47,7 @@ docker exec tigergraph //home/tigergraph/tigergraph/app/4.1.0/cmd/gsql "SHOW GRA
 # -u tigergraph
 # exec -it
 
+# Deleting everything
 #DROP USERS
 #DROP EDGES
 #DROP GRAPH

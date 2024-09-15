@@ -172,7 +172,7 @@ class MovieLensBatchImporter:
         print(f"Tags loaded from {tags_csv}")
 
 # Initialize MovieLensBatchImporter with Neo4j connection details
-neo4j_importer = MovieLensBatchImporter("bolt://localhost:7687", "neo4j", "hamomezi")
+neo4j_importer = MovieLensBatchImporter("bolt://localhost:7687", "neo4j", "password")
 
 # Create indexes before importing data
 neo4j_importer.create_indexes()
@@ -182,6 +182,17 @@ movies_csv = r"../datasets/ml-10M100K/movies.csv" # % delimiter
 genres_csv = r"../datasets/ml-10M100K/genres.csv"
 users_csv = r"../datasets/ml-10M100K/users.csv"
 ratings_csv = r"../datasets/ml-10M100K/ratings.csv" # | delimiter
+ratings_csv0 = r"../datasets/ml-10M100K/ratings00.csv" # | delimiter
+ratings_csv1 = r"../datasets/ml-10M100K/ratings01.csv" # | delimiter
+ratings_csv2 = r"../datasets/ml-10M100K/ratings02.csv" # | delimiter
+ratings_csv3 = r"../datasets/ml-10M100K/ratings03.csv" # | delimiter
+ratings_csv4 = r"../datasets/ml-10M100K/ratings04.csv" # | delimiter
+ratings_csv5 = r"../datasets/ml-10M100K/ratings05.csv" # | delimiter
+ratings_csv6 = r"../datasets/ml-10M100K/ratings06.csv" # | delimiter
+ratings_csv7 = r"../datasets/ml-10M100K/ratings07.csv" # | delimiter
+ratings_csv8 = r"../datasets/ml-10M100K/ratings08.csv" # | delimiter
+ratings_csv9 = r"../datasets/ml-10M100K/ratings09.csv" # | delimiter
+ratings_csv10 = r"../datasets/ml-10M100K/ratings10.csv" # | delimiter
 tags_csv = r"../datasets/ml-10M100K/tags.csv" # | delimiter
 
 # Load the data in batches using UNWIND
@@ -190,7 +201,18 @@ tags_csv = r"../datasets/ml-10M100K/tags.csv" # | delimiter
 # neo4j_importer.load_movie_genre_relationships(movies_csv)
 # neo4j_importer.load_users(users_csv)
 neo4j_importer.load_tags(tags_csv)
-neo4j_importer.load_ratings(ratings_csv)
+#neo4j_importer.load_ratings(ratings_csv)
+neo4j_importer.load_ratings(ratings_csv0)
+neo4j_importer.load_ratings(ratings_csv1)
+neo4j_importer.load_ratings(ratings_csv2)
+neo4j_importer.load_ratings(ratings_csv3)
+neo4j_importer.load_ratings(ratings_csv4)
+neo4j_importer.load_ratings(ratings_csv5)
+neo4j_importer.load_ratings(ratings_csv6)
+neo4j_importer.load_ratings(ratings_csv7)
+neo4j_importer.load_ratings(ratings_csv8)
+neo4j_importer.load_ratings(ratings_csv9)
+neo4j_importer.load_ratings(ratings_csv10)
 
 # Close the connection
 neo4j_importer.close()
