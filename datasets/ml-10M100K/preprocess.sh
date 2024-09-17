@@ -16,7 +16,8 @@ GENRES_OUTPUT="genres.csv"
 USERS_OUTPUT="users.csv"
 
 # Predefined genres
-echo "Action" > genres.csv
+echo "genreId,name" > genres.csv
+echo "Action" >> genres.csv
 echo "Adventure" >> genres.csv
 echo "Animation" >> genres.csv
 echo "Children's" >> genres.csv
@@ -43,7 +44,8 @@ awk -F"::" '{print $1}' $RATINGS_CSV > temp_users_ratings.csv
 awk -F"::" '{print $1}' $TAGS_CSV >> temp_users_ratings.csv
 
 # Sort and remove duplicates
-sort temp_users_ratings.csv | uniq > $USERS_OUTPUT
+echo "userId" > $USERS_OUTPUT
+sort temp_users_ratings.csv | uniq >> $USERS_OUTPUT
 rm temp_users_ratings.csv
 
 echo "Unique users saved to $USERS_OUTPUT"
