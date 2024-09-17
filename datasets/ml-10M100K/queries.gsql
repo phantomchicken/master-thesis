@@ -1,81 +1,108 @@
-CREATE OR REPLACE DISTRIBUTED QUERY testgsql(/* Parameters here */) FOR GRAPH movielens { 
-  result = SELECT u
-           FROM User:u
-           LIMIT 5;
-  print result;
+
+// Q1: Find all the movies in a specific genre (e.g., Action)
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+    Movies = SELECT m
+        FROM Movie:m -(HAS_GENRE)-> Genre:g
+        WHERE g.name == "Action";
+
+    PRINT Movies [Movies.title];
 }
 
-
+// Q2: Find the top 5 highest-rated movies (average rating)
 INTERPRET QUERY () { 
-  result = SELECT m
-           FROM Movie:m
-           LIMIT 5;
-  print result;
-}
-
-
-INTERPRET QUERY () { 
-  result = SELECT m
-           FROM Movie:m
-           LIMIT 5;
-  PRINT result [result.title];
-}
-//////////////
-INTERPRET QUERY () { 
-  SumAccum<FLOAT> @totalRating;
-  SumAccum<INT> @ratingCount;
-  AvgAccum @avgRating;
-  
-  RatingsAccum = SELECT m
-                 FROM Movie:m -(RATED:r)- User:u
-                 ACCUM m.@totalRating += r.rating, m.@ratingCount += 1
-                 POST-ACCUM m.@avgRating = m.@totalRating / m.@ratingCount;
-  
-  PRINT RatingsAccum [RatingsAccum.title, RatingsAccum.@avgRating];
-}
-
-    2
-    INTERPRET QUERY () { 
     SumAccum<FLOAT> @totalRating;
     SumAccum<INT> @ratingCount;
     AvgAccum @avgRating;
-    
-    RatingsAccum = SELECT m
-                    FROM Movie:m -(RATED:r)- User:u
-                    ACCUM m.@totalRating += r.rating, m.@ratingCount += 1
-                    POST-ACCUM m.@avgRating = m.@totalRating / m.@ratingCount
-                    ORDER BY m.@avgRating DESC
-                    LIMIT 5;
-    PRINT RatingsAccum [RatingsAccum.title, RatingsAccum.@avgRating];
-  }
 
-    4
-    INTERPRET QUERY () FOR GRAPH movielenssmall { 
+    RatingsAccum = SELECT m
+        FROM Movie:m -(RATED:r)- User:u
+        ACCUM m.@totalRating += r.rating, m.@ratingCount += 1
+        POST-ACCUM m.@avgRating = m.@totalRating / m.@ratingCount
+        ORDER BY m.@avgRating DESC
+        LIMIT 5;
+
+    PRINT RatingsAccum [RatingsAccum.title, RatingsAccum.@avgRating];
+}
+
+// Q3: List the genres with the most movies
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+
+    // Define a tuple type to store genre names and movie counts
+    TYPEDEF TUPLE <STRING genreName, INT movieCount> GenreCountTuple;
+
+    // Declare MapAccum to aggregate the movie count for each genre
+    MapAccum<STRING, INT> @@genreCount;
+
+    // Declare HeapAccum to store the top 100 genres sorted by movie count in descending order
+    HeapAccum<GenreCountTuple>(100, movieCount DESC) @@topGenres;
+
+    // Step 1: Count the number of movies for each genre using MapAccum
+    GenreCount = SELECT g
+        FROM Movie:m -(HAS_GENRE)-> Genre:g
+        ACCUM @@genreCount += (g.name -> 1);
+
+    // Step 2: Transfer the results from MapAccum to HeapAccum for sorting
+    FOREACH (genreName, movieCount) IN @@genreCount DO
+        @@topGenres += GenreCountTuple(genreName, movieCount);
+    END;
+
+    // Step 3: Print the top genres sorted by movie count
+    PRINT @@topGenres;
+}
+
+// Q4: Find users who rated a specific movie (e.g., "Toy Story")
+INTERPRET QUERY () FOR GRAPH movielenssmall { 
     SetAccum<STRING> @@usersRated;
 
     UsersRated = SELECT u
-                FROM User:u -(RATED)-> Movie:m
-                WHERE m.title == "Toy Story (1995)"
-                ACCUM @@usersRated += u.userId;
+        FROM User:u -(RATED)-> Movie:m
+        WHERE m.title == "Toy Story (1995)"
+        ACCUM @@usersRated += u.userId;
 
     PRINT @@usersRated;
-    }
+}
 
-    6
-    INTERPRET QUERY () FOR GRAPH movielenssmall {
+// Q5: Find the top 5 movies with the most distinct users who rated them
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+
+    // Define a tuple type to store movie titles and the count of users
+    TYPEDEF TUPLE <STRING movieTitle, INT userCount> MovieUserCountTuple;
+
+    // Declare a MapAccum to count the number of users per movie
+    MapAccum<STRING, INT> @@userCount;
+
+    // HeapAccum to store top 5 movies with the most users, sorted by user count in descending order
+    HeapAccum<MovieUserCountTuple>(5, userCount DESC) @@topMovies;
+
+    // Step 1: Accumulate the number of users for each movie using MapAccum
+    MovieUserCount = SELECT m
+                     FROM Movie:m -(RATED)-> User:u
+                     ACCUM @@userCount += (m.title -> 1);
+
+    // Step 2: Transfer the results from MapAccum to HeapAccum for sorting
+    FOREACH (movieTitle, userCount) IN @@userCount DO
+        @@topMovies += MovieUserCountTuple(movieTitle, userCount);
+    END;
+
+    // Step 3: Print the top 5 movies with their user count
+    PRINT @@topMovies;
+}
+
+// Q6: Find the user who rated the most movies
+INTERPRET QUERY () FOR GRAPH movielenssmall {
     SumAccum<INT> @ratingCount;
-    
-    MostRatings = SELECT u
-                    FROM User:u -(RATED)-> Movie:m
-                    ACCUM u.@ratingCount += 1
-                    ORDER BY u.@ratingCount DESC
-                    LIMIT 1;
-    
-    PRINT MostRatings [MostRatings.userId, MostRatings.@ratingCount];
-    }
 
-    7
-    INTERPRET QUERY () FOR GRAPH movielenssmall {
+    MostRatings = SELECT u
+        FROM User:u -(RATED)-> Movie:m
+        ACCUM u.@ratingCount += 1
+        ORDER BY u.@ratingCount DESC
+        LIMIT 1;
+
+    PRINT MostRatings [MostRatings.userId, MostRatings.@ratingCount];
+}
+
+// Q7: Calculate the average, variance, and standard deviation of ratings for "Forrest Gump (1994)"
+INTERPRET QUERY () FOR GRAPH movielenssmall {
     // Accumulators
     SumAccum<FLOAT> @@ratingSum;
     SumAccum<FLOAT> @@ratingSquaredSum;
@@ -84,80 +111,133 @@ INTERPRET QUERY () {
 
     // Step 1: Collect ratings and compute sums
     ForrestGumpRatings = SELECT m
-                        FROM Movie:m -(RATED:r)- User:u
-                        WHERE m.title == "Forrest Gump (1994)"
-                        ACCUM @@ratingSum += r.rating,
-                                @@ratingSquaredSum += pow(r.rating, 2),
-                                @@ratings += r.rating;
+        FROM Movie:m -(RATED:r)- User:u
+        WHERE m.title == "Forrest Gump (1994)"
+        ACCUM @@ratingSum += r.rating,
+                @@ratingSquaredSum += pow(r.rating, 2),
+                @@ratings += r.rating;
 
     // Step 2: Calculate the average
     ForrestGumpAverage = SELECT m
-                        FROM Movie:m
-                        WHERE m.title == "Forrest Gump (1994)"
-                        POST-ACCUM @@avgRating += @@ratingSum / SIZE(@@ratings);
+        FROM Movie:m
+        WHERE m.title == "Forrest Gump (1994)"
+        POST-ACCUM @@avgRating += @@ratingSum / SIZE(@@ratings);
+
+    // Step 3: Calculate the standard deviation
+    PRINT "Standard Deviation:", sqrt((@@ratingSquaredSum / SIZE(@@ratings)) - pow(@@avgRating, 2));
+}
+
+// Q8: Calculate the PageRank for all nodes in the graph
+INTERPRET QUERY () FOR GRAPH movielenssmall SYNTAX v2 {
+    FLOAT maxIter = 20;
+    FLOAT damping = 0.85;
+
+    SumAccum<FLOAT> @pr;
+
+    // Perform PageRank calculation
+    PageRank = SELECT m FROM Movie:m
+        ACCUM m.@pr += damping * (m.@pr / maxIter) 
+        POST-ACCUM m.@pr = (1 - damping) / maxIter;
+
+    PRINT PageRank;
+}
+
+// Q9: Calculate the betweenness centrality for all nodes in the graph
+RUN QUERY tg_betweenness_cent (["Movie"], ["RATED"], "", 10, 10)
+
+// Q10: Detect communities in the graph
+RUN QUERY tg_louvain (["User", "Movie", "Genre"], ["RATED", "TAGGED", "HAS_GENRE"], "RATED", 10, "", "", True)
+
+////// similar
+// Q3: Count the number of movies in each genre
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+    MapAccum<STRING, INT> @@genreCount;
+
+    // Select each genre and count its movies
+    GenreCount = SELECT g
+        FROM Movie:m -(HAS_GENRE)-> Genre:g
+        ACCUM @@genreCount += (g.name -> 1);
+
+    PRINT @@genreCount;
+}
+
+// Q5: Find the top 5 movies with the most distinct users who rated them
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+// Accumulators
+MapAccum<STRING, INT> @@userCount;
+
+// Step 1: Count the number of distinct users who rated each movie
+MovieUserCount = SELECT m
+                  FROM Movie:m -(RATED)-> User:u
+                  ACCUM @@userCount += (m.title -> 1);
+
+// Step 2: Sort movies by distinct user count in descending order and limit to 5
+TopMovies = SELECT m
+            FROM Movie:m
+            ORDER BY @@userCount.get(m.title) DESC
+            LIMIT 5;
+
+// Step 3: Print the top 5 movies with their distinct user count
+PRINT TopMovies[TopMovies.title, @@userCount.get(TopMovies.title)];
+}
+
+// Q6: Find the user who rated the most movies
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+    SumAccum<INT> @ratingCount;
+
+    MostRatings = SELECT u
+        FROM User:u -(RATED)-> Movie:m
+        ACCUM u.@ratingCount += 1
+        ORDER BY u.@ratingCount DESC
+        LIMIT 1;
+
+    PRINT MostRatings [MostRatings.userId, MostRatings.@ratingCount];
+}
+
+// Q7: Calculate the average, variance, and standard deviation of ratings for "Forrest Gump (1994)"
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+    // Accumulators
+    SumAccum<FLOAT> @@ratingSum;
+    SumAccum<FLOAT> @@ratingSquaredSum;
+    ListAccum<FLOAT> @@ratings;
+    AvgAccum @@avgRating;
+
+    // Step 1: Collect ratings and compute sums
+    ForrestGumpRatings = SELECT m
+        FROM Movie:m -(RATED:r)- User:u
+        WHERE m.title == "Forrest Gump (1994)"
+        ACCUM @@ratingSum += r.rating,
+                @@ratingSquaredSum += pow(r.rating, 2),
+                @@ratings += r.rating;
+
+    // Step 2: Calculate the average
+    ForrestGumpAverage = SELECT m
+        FROM Movie:m
+        WHERE m.title == "Forrest Gump (1994)"
+        POST-ACCUM @@avgRating += @@ratingSum / SIZE(@@ratings);
 
     // Step 3: Calculate variance and standard deviation
     PRINT "Average Rating:", @@avgRating;
     PRINT "Variance:", (@@ratingSquaredSum / SIZE(@@ratings)) - pow(@@avgRating, 2);
     PRINT "Standard Deviation:", sqrt((@@ratingSquaredSum / SIZE(@@ratings)) - pow(@@avgRating, 2));
-    }
-
-    1
-    INTERPRET QUERY () FOR GRAPH movielenssmall {
-    Movies = SELECT m
-            FROM Movie:m -(HAS_GENRE)-> Genre:g
-            WHERE g.name == "Crime";
-
-    PRINT Movies [Movies.title];
-    }
-
-    3
-    INTERPRET QUERY () FOR GRAPH movielenssmall {
-    MapAccum<STRING, INT> @@genreCount;
-
-    // Select each genre and count its movies
-    GenreCount = SELECT g
-                FROM Movie:m -(HAS_GENRE)-> Genre:g
-                ACCUM @@genreCount += (g.name -> 1);
-
-    PRINT @@genreCount;
-    }
-
-    INTERPRET QUERY () FOR GRAPH movielenssmall {
-    MapAccum<STRING, INT> @@genreCount;
-    
-    // Step 1: Count the number of movies in each genre
-    GenreCount = SELECT g
-                 FROM Movie:m -(HAS_GENRE)-> Genre:g
-                 ACCUM @@genreCount += (g.name -> 1);
-    
-    // Step 2: Sort and return the genre with the most movies
-    SortedGenre = SELECT g
-                  FROM Genre:g
-                  ORDER BY @@genreCount.get(g.name) DESC
-                  LIMIT 1;
-
-    // Print the genre with the most movies and its count
-    PRINT SortedGenre[SortedGenre.name, @@genreCount.get(SortedGenre.name)];
 }
-    5
-    INTERPRET QUERY () FOR GRAPH movielenssmall {
-    // Accumulators
-    MapAccum<STRING, INT> @@userCount;
+//////// misc 
+INTERPRET QUERY () FOR GRAPH movielenssmall {
+MapAccum<STRING, INT> @@genreCount;
 
-    // Step 1: Count the number of distinct users who rated each movie
-    MovieUserCount = SELECT m
-                     FROM Movie:m -(RATED)-> User:u
-                     ACCUM @@userCount += (m.title -> 1);
+// Step 1: Count the number of movies in each genre
+GenreCount = SELECT g
+              FROM Movie:m -(HAS_GENRE)-> Genre:g
+              ACCUM @@genreCount += (g.name -> 1);
 
-    // Step 2: Sort movies by distinct user count in descending order and limit to 5
-    TopMovies = SELECT m
-                FROM Movie:m
-                ORDER BY @@userCount.get(m.title) DESC
-                LIMIT 5;
+// Step 2: Sort and return the genre with the most movies
+SortedGenre = SELECT g
+              FROM Genre:g
+              ORDER BY @@genreCount.get(g.name) DESC
+              LIMIT 1;
 
-    // Step 3: Print the top 5 movies with their distinct user count
-    PRINT TopMovies[TopMovies.title, @@userCount.get(TopMovies.title)];
+// Print the genre with the most movies and its count
+PRINT SortedGenre[SortedGenre.name, @@genreCount.get(SortedGenre.name)];
 }
 
 PAGERANK
@@ -186,8 +266,38 @@ RUN QUERY tg_louvain (
     "",                                  -- file_path (if not saving to a file)
     True                                 -- print_info (to output results to JSON)
 );
+/////// simple queries
+CREATE OR REPLACE DISTRIBUTED QUERY testgsql(/* Parameters here */) FOR GRAPH movielens { 
+  result = SELECT u
+           FROM User:u
+           LIMIT 5;
+  print result;
+}
 
 
+INTERPRET QUERY () { 
+  result = SELECT m
+           FROM Movie:m
+           LIMIT 5;
+  print result;
+}
 
+INTERPRET QUERY () { 
+  result = SELECT m
+           FROM Movie:m
+           LIMIT 5;
+  PRINT result [result.title];
+}
 
-RUN QUERY tg_betweenness_cent (    ["Movie"],    ["RATED"],    "",    10,    10)
+INTERPRET QUERY () { 
+  SumAccum<FLOAT> @totalRating;
+  SumAccum<INT> @ratingCount;
+  AvgAccum @avgRating;
+  
+  RatingsAccum = SELECT m
+                 FROM Movie:m -(RATED:r)- User:u
+                 ACCUM m.@totalRating += r.rating, m.@ratingCount += 1
+                 POST-ACCUM m.@avgRating = m.@totalRating / m.@ratingCount;
+  
+  PRINT RatingsAccum [RatingsAccum.title, RatingsAccum.@avgRating];
+}
