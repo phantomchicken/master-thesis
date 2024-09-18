@@ -15,19 +15,19 @@ ORDER BY movie_count DESC;
 
 // Q4: Find users who rated a specific movie (e.g., "Toy Story"): 323ms
 MATCH (u:User)-[r:RATED]->(m:Movie {title: "Toy Story (1995)"})
-RETURN u.userId, r.rating;
+RETURN u.id, r.rating;
 
 // u.userId = u.id in memgraph!!!
 // Q5: Find the top 5 movies with the most distinct users who rated them 7S
 MATCH (u:User)-[:RATED]->(m:Movie)
-RETURN m.title, COUNT(DISTINCT u.userId) AS num_users
+RETURN m.title, COUNT(DISTINCT u.id) AS num_users
 ORDER BY num_users DESC
 LIMIT 5;
 
 // u.userId = u.id in memgraph!!! 2,61s
 // Q6: Find the user with the most ratings
 MATCH (u:User)-[r:RATED]->(m:Movie)
-RETURN u.userId, COUNT(r) AS total_ratings
+RETURN u.id, COUNT(r) AS total_ratings
 ORDER BY total_ratings DESC
 LIMIT 1;
 

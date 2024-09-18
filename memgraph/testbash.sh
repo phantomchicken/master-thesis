@@ -1,6 +1,6 @@
 #!/bin/bash
 rm res.csv
-for i in {1..29}
+for i in {1..30}
 do
   echo "Run $i:"
   python test.py

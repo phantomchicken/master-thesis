@@ -1,7 +1,7 @@
 import mgclient
-import psutil
 import time
 import csv
+import subprocess
 import os
 
 # Connect to Memgraph
@@ -11,51 +11,83 @@ cursor = conn.cursor()
 
 # Sample Query (adjust as needed)
 query = """
-CALL betweenness_centrality.get(True, True) 
-YIELD node, betweenness_centrality
-RETURN node, betweenness_centrality
-ORDER BY betweenness_centrality DESC
-LIMIT 10;
+CALL community_detection.get()
+YIELD node, community_id;
 """  # Modify this query to fit your testing needs
 
-def run_query(query, query_name):
-    # Get the current process
-    process = psutil.Process(os.getpid())
+# Function to start Docker stats monitoring in the background
+def start_docker_stats(output_file):
+    docker_process = subprocess.Popen(
+        ["docker", "stats", "--format", "{{.CPUPerc}}, {{.MemUsage}}"],
+        stdout=open(output_file, "w")
+    )
+    return docker_process
 
-    # Measure time and system resource usage
+# Function to stop Docker stats monitoring
+def stop_docker_stats(docker_process):
+    docker_process.terminate()
+    docker_process.wait()  # Ensure the process is completely stopped
+
+# Function to clean Docker stats output and calculate averages
+def clean_and_average_docker_stats(input_file):
+    total_cpu = 0
+    total_mem = 0
+    count = 0
+
+    with open(input_file, "r") as f:
+        for line in f:
+            line = line.strip().replace('\x1b[2J\x1b[H', '').strip()  # Remove special characters
+            if line:
+                # Remove '%' from CPU usage and GiB from memory usage
+                cpu, mem = line.split(", ")
+                cpu_value = float(cpu.strip('%')) * 0.25  # Normalize CPU usage by 4 cores
+                mem_value = float(mem.split("GiB")[0])
+                total_cpu += cpu_value
+                total_mem += mem_value
+                count += 1
+
+    # Calculate averages
+    avg_cpu = total_cpu / count if count > 0 else 0
+    avg_mem = total_mem / count if count > 0 else 0
+    return avg_cpu, avg_mem
+
+def run_query_with_stats(query, query_name, container_name):
+    # Start Docker stats monitoring
+    docker_stats_file = "tmp.txt"
+    docker_process = start_docker_stats(docker_stats_file)
+
+    # Measure time for query execution
     start_time = time.time()
-
-    # Measure initial CPU and memory usage
-    cpu_start = psutil.cpu_percent(interval=None)  # Get instant CPU usage
-    mem_start = process.memory_info().rss / (1024 * 1024)  # Convert bytes to MB
 
     # Execute the query
     cursor.execute(query)
     results = cursor.fetchall()  # Fetch the results (optional, adjust based on query)
 
-    # Measure time and system resource usage after execution
+    # Measure time after query execution
     end_time = time.time()
-
-    # Measure CPU usage after query
-    cpu_end = psutil.cpu_percent(interval=None)  # Get instant CPU usage
-
-    # Measure memory usage after query
-    mem_end = process.memory_info().rss / (1024 * 1024)
-
-    # Calculate metrics
     execution_time = end_time - start_time
-    cpu_usage = cpu_end - cpu_start if cpu_end >= cpu_start else 0   # CPU usage in percentage
-    ram_usage = mem_end - mem_start if mem_end >= mem_start else 0  # Memory difference during query
 
-    print(f"{query_name}: Time = {execution_time:.4f} sec, CPU Usage = {cpu_usage:.2f}%, RAM = {ram_usage:.2f} MB")
+    # Stop Docker stats monitoring
+    if os.stat(docker_stats_file).st_size == 0:
+        time.sleep(1)
+    stop_docker_stats(docker_process)
 
-    # Write the result to a CSV file
+    # Clean Docker stats and calculate averages
+    avg_cpu, avg_mem = clean_and_average_docker_stats(docker_stats_file)
+
+    # Print and save results
+    print(f"{query_name}: Time = {execution_time:.4f} sec, Avg CPU Usage = {avg_cpu:.2f}%, Avg RAM Usage = {avg_mem:.3f} GiB")
+
+    # Write the result to a CSV file with numeric values only
     with open('res.csv', mode='a', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow([execution_time, cpu_usage, ram_usage])
+        writer.writerow([execution_time, avg_cpu, avg_mem])
 
-# Run the query once
-run_query(query, "Memgraph Query")
+# Define the container name for Memgraph
+container_name = "memgraph"
+
+# Run the query with Docker stats measurement
+run_query_with_stats(query, "Memgraph Query", container_name)
 
 # Close the connection
 cursor.close()
