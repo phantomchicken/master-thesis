@@ -25,7 +25,7 @@ ORDER BY num_users DESC
 LIMIT 5;
 
 // u.userId = u.id in memgraph!!! 2,61s
-// Q6: Find the movie with the most ratings
+// Q6: Find the user with the most ratings
 MATCH (u:User)-[r:RATED]->(m:Movie)
 RETURN u.userId, COUNT(r) AS total_ratings
 ORDER BY total_ratings DESC

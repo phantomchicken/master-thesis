@@ -3,13 +3,13 @@
 INTERPRET QUERY () FOR GRAPH movielenssmall {
     Movies = SELECT m
         FROM Movie:m -(HAS_GENRE)-> Genre:g
-        WHERE g.name == "Action";
+        WHERE g.name == "Crime";
 
     PRINT Movies [Movies.title];
 }
 
 // Q2: Find the top 5 highest-rated movies (average rating)
-INTERPRET QUERY () { 
+INTERPRET QUERY () FOR GRAPH movielenssmall { 
     SumAccum<FLOAT> @totalRating;
     SumAccum<INT> @ratingCount;
     AvgAccum @avgRating;
@@ -300,4 +300,21 @@ INTERPRET QUERY () {
                  POST-ACCUM m.@avgRating = m.@totalRating / m.@ratingCount;
   
   PRINT RatingsAccum [RatingsAccum.title, RatingsAccum.@avgRating];
+}
+
+INTERPRET QUERY (/* Parameters here */) FOR GRAPH movielens { 
+Start = {Movie.*};
+SumAccum<INT> @avgRatingSum;
+SumAccum<INT> @avgRating;
+SumAccum<INT> @ratingCount;
+Ratings = SELECT m
+            FROM Start:m - (RATED:e) - User:u
+            ACCUM m.@avgRatingSum += e.rating, m.@ratingCount += 1
+            POST-ACCUM m.@avgRating = m.@avgRatingSum / m.@ratingCount;
+HighestRatedMovie = SELECT m
+                    FROM Ratings:m
+                    WHERE m.@ratingCount > 0
+                    ORDER BY m.@avgRating DESC
+                    LIMIT 1;
+PRINT HighestRatedMovie;
 }
