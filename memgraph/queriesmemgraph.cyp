@@ -60,10 +60,10 @@ CALL community_detection.get()
 YIELD node, community_id;
 
 ///////////////////////////////////////////
-CREATE INDEX IF NOT EXISTS FOR (m:Movie) ON (m.movieId);
-CREATE INDEX IF NOT EXISTS FOR (m:Movie) ON (m.title);
-CREATE INDEX IF NOT EXISTS FOR (g:Genre) ON (g.name);
-CREATE INDEX IF NOT EXISTS FOR (u:User) ON (u.userId);
+CREATE INDEX ON :Movie(movieId);
+CREATE INDEX ON :Movie(title);
+CREATE INDEX ON :Genre(name);
+CREATE INDEX ON :User(userId);
 
 CALL gds.graph.project(
   'movieGraph',
