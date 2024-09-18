@@ -1,38 +1,39 @@
-Find all the movies in a specific genre (e.g., Action): 300ms
+// Q1: Find all the movies in a specific genre (e.g., Action): 300ms
 MATCH (m:Movie)-[:HAS_GENRE]->(g:Genre {name: "Action"}) 
 RETURN m.title;
 
-Find the top 5 highest-rated movies (average rating): 30s
+// Q2: Find the top 5 highest-rated movies (average rating)  30s
 MATCH (m:Movie)<-[r:RATED]-(u:User)
 RETURN m.title, AVG(r.rating) AS avg_rating
 ORDER BY avg_rating DESC
 LIMIT 5;
 
-List the genres with the most movies: 183ms
+// Q3: List the genres with the most movies 183ms
 MATCH (m:Movie)-[:HAS_GENRE]->(g:Genre)
 RETURN g.name, COUNT(m) AS movie_count
 ORDER BY movie_count DESC;
 
-Find users who rated a specific movie (e.g., "Toy Story"): 2,5s
+// Q4: Find users who rated a specific movie (e.g., "Toy Story"):2,5s
 MATCH (u:User)-[r:RATED]->(m:Movie {title: "Toy Story (1995)"})
 RETURN u.userId, r.rating;
 
-Find the top 5 movies with the highest number of distinct users who rated them: 10S
+// Q5: Find the top 5 movies with the most distinct users who rated them 10S
 MATCH (u:User)-[:RATED]->(m:Movie)
 RETURN m.title, COUNT(DISTINCT u.userId) AS num_users
 ORDER BY num_users DESC
 LIMIT 5;
 
-Most ratings 14s
+// Q6: Find the user with the most ratings 14s
 MATCH (u:User)-[r:RATED]->(m:Movie)
 RETURN u.userId, COUNT(r) AS total_ratings
 ORDER BY total_ratings DESC
 LIMIT 1;
 
-MATCH (m:Movie {title: "Forrest Gump (1994)"})<-[r:RATED]-(u:User) 10S
+// Q7: Find the st. deviation for a movie (e.g., "Forrest Gump") 10S
+MATCH (m:Movie {title: "Forrest Gump (1994)"})<-[r:RATED]-(u:User) 
 RETURN STDEV(r.rating) AS ratingVariance;
 
-
+// Mandatory for Q8-Q10
 CALL gds.graph.project(
   'movieGraph',
   'Movie',
@@ -44,13 +45,16 @@ CALL gds.graph.project(
   }
 );
 
-CALL gds.pageRank.stream('movieGraph') 180ms
+// Q8: Calculate PageRank for all nodes in the graph 180ms
+CALL gds.pageRank.stream('movieGraph') 
+YIELD nodeId, score
 MATCH (m:Movie) WHERE id(m) = nodeId
 RETURN m.title AS movie, score
 ORDER BY score DESC
 LIMIT 10;
 
-CALL gds.betweenness.stream('m1') 30s
+// Q9: Calculate the betweenness centrality for all nodes in the graph 30s
+CALL gds.betweenness.stream('m1') 
 YIELD nodeId, score
 MATCH (n) WHERE id(n) = nodeId
 RETURN 
@@ -62,7 +66,8 @@ RETURN
 ORDER BY score DESC
 LIMIT 10;
 
-CALL gds.louvain.stream('m1')
+// Q10: Detect communities in the graph
+CALL gds.louvain.stream('movieGraph')
 YIELD nodeId, communityId
 WITH nodeId, communityId
 MATCH (n) WHERE id(n) = nodeId
@@ -78,6 +83,7 @@ UNWIND sample_per_community AS name_or_id
 RETURN name_or_id, communityId
 ORDER BY communityId;
 
+/////////////////////////////////////////
 CALL gds.pageRank.stream('m1', {
   maxIterations: 20,
   dampingFactor: 0.85
