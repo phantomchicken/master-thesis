@@ -15,37 +15,17 @@ docker cp ../datasets/ml-32m/genres.csv tigergraph:/home/tigergraph/tigergraph/d
 docker cp ../datasets/ml-32m/users.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/users.csv
 
 docker exec tigergraph //home/tigergraph/tigergraph/app/4.1.0/cmd/gsql "SHOW GRAPH movielens"
+docker exec -it tigergraph //home/tigergraph/tigergraph/app/4.1.0/cmd/gadmin "restart gsql"
 
+
+INSTALL QUERY tg_louvain
+INSTALL QUERY tg_betweenness_cent
 # running algorithms
 #docker exec -tigergraph sh
 #//home/tigergraph/tigergraph/app/4.1.0/cmd//gsql SET query_timeout=60
 # gsql
 # USE GRAPH movielens
 # RUN QUERY tg_betweenness_cent 
-
-# INTERPRET QUERY (/* Parameters here */) FOR GRAPH movielens { 
-#   Start = {Movie.*};
-#   SumAccum<INT> @avgRatingSum;
-#    SumAccum<INT> @avgRating;
-#   SumAccum<INT> @ratingCount;
-#   Ratings = SELECT m
-#             FROM Start:m - (RATED:e) - User:u
-#             ACCUM m.@avgRatingSum += e.rating, m.@ratingCount += 1
-#             POST-ACCUM m.@avgRating = m.@avgRatingSum / m.@ratingCount;
-
-#   HighestRatedMovie = SELECT m
-#                       FROM Ratings:m
-#                       WHERE m.@ratingCount > 0
-#                       ORDER BY m.@avgRating DESC
-#                       LIMIT 1;
-
-#   PRINT HighestRatedMovie;
-
-# }
-
-
-# -u tigergraph
-# exec -it
 
 # Deleting everything
 #DROP USERS
