@@ -3,3 +3,6 @@ pokec
 datasets/ml-32m/tags.csv
 datasets/ml-32m/ratings.csv
 .vscode
+*tmp.txt
+*res.csv
+datasets/

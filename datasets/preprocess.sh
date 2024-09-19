@@ -87,8 +87,8 @@ echo "Preparing headers and delimiters for movies.csv, tags.csv, and ratings.csv
 sed -i 's/::/%/g' $MOVIES_CSV
 sed -i 's/::/|/g' $TAGS_CSV
 sed -i 's/::/|/g' $RATINGS_CSV
-sed -i 's/"//g' $MOVIES_CSV # Remove double quotes
-sed -i 's/"//g' $TAGS_CSV # Remove double quotes
+sed -i 's/"//g' movies.csv # Remove double quotes
+sed -i 's/"//g' tags.csv # Remove double quotes
 
 
 if ! head -n 1 movies.csv | grep -q "movieId%title%genres"; then
