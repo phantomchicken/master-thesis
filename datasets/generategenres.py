@@ -2,7 +2,8 @@ import csv
 import os
 
 # Split genres from movies.csv and create a mapping of genre name to genre ID
-base_dir = os.path.join(os.getcwd(), 'ml-10M100K')
+
+base_dir = os.path.join(os.path.dirname(__file__), 'ml-10M100K')
 movies_csv = os.path.join(base_dir, 'movies.csv')
 genres_csv = os.path.join(base_dir, 'genres.csv')
 output_csv = os.path.join(base_dir, 'movie_genre_edges.csv')

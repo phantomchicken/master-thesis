@@ -6,34 +6,43 @@ if [ ! -d "ml-10M100K" ]; then
     wget https://files.grouplens.org/datasets/movielens/ml-10m.zip
     unzip ml-10m.zip
     echo "Dataset downloaded and unzipped."
+    mv "movies.dat" "movies.csv"
+    mv "ratings.dat" "ratings.csv"
+    mv "tags.dat" "tags.csv"
+    rm -f "genres.csv"
+    rm README.html
+    rm split_ratings.sh
+    rm allbut.pl
+    rm ml-10m.zip
 else
     echo "ml-10M100K folder found."
 fi
 
-rm ml-10m.zip
-# Change to the dataset directory
+
 cd ml-10M100K
 
-# Renaming the .dat files to .csv
-mv "movies.dat" "movies.csv"
-mv "ratings.dat" "ratings.csv"
-mv "tags.dat" "tags.csv"
-rm -f "genres.csv"
-rm README.html
-rm split_ratings.sh
-rm allbut.pl
-
-
-# Paths to your CSV files
 MOVIES_CSV="movies.csv"
 RATINGS_CSV="ratings.csv"
 TAGS_CSV="tags.csv"
 GENRES_CSV="genres.csv"
 OUTPUT_CSV="movie_genre_edges.csv"
 
-# Output files for preprocessed data
 GENRES_OUTPUT="genres.csv"
 USERS_OUTPUT="users.csv"
+
+# Split ratings.csv into smaller chunks of 1,000,000 lines each (including header)
+if [ ! -d "split_ratings" ]; then
+    mkdir "split-ratings"
+fi
+
+
+echo "Splitting ratings.csv into chunks..."
+
+# Split while keeping the header in each split file
+split -l 1000000 --additional-suffix=.csv --numeric-suffixes=00 --filter='sh -c "{ head -n1 ratings.csv; cat; } > $FILE"' $RATINGS_CSV ratings
+
+echo "ratings.csv has been split into files in split-ratings."
+
 
 # Predefined genres
 echo "genreId,name" > genres.csv
@@ -78,6 +87,9 @@ echo "Preparing headers and delimiters for movies.csv, tags.csv, and ratings.csv
 sed -i 's/::/%/g' $MOVIES_CSV
 sed -i 's/::/|/g' $TAGS_CSV
 sed -i 's/::/|/g' $RATINGS_CSV
+sed -i 's/"//g' $MOVIES_CSV # Remove double quotes
+sed -i 's/"//g' $TAGS_CSV # Remove double quotes
+
 
 if ! head -n 1 movies.csv | grep -q "movieId%title%genres"; then
     sed -i '1imovieId%title%genres' movies.csv
