@@ -7,15 +7,15 @@ gadmin license set eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJJc3N1ZXIiOiJUaWdlckdy
 gadmin config apply
 gadmin license status
 
-gsql -u tigergraph
-CREATE VERTEX User (PRIMARY_ID id UINT)
-CREATE UNDIRECTED EDGE FRIENDS_WITH (FROM User, TO User)
-CREATE GRAPH facebook(User, FRIENDS_WITH)
-INSTALL DATASET
+# gsql -u tigergraph
+# CREATE VERTEX User (PRIMARY_ID id UINT)
+# CREATE UNDIRECTED EDGE FRIENDS_WITH (FROM User, TO User)
+# CREATE GRAPH facebook(User, FRIENDS_WITH)
+# INSTALL DATASET
 
-gsql -u tigergraph -g facebook
-CREATE SECRET facebook
-SHOW SECRET
+# gsql -u tigergraph -g facebook
+# CREATE SECRET facebook
+# SHOW SECRET
 
 # Copy users.csv and edges.csv into TigerGraph container
 docker cp ../memgraph/users.csv tigergraph:/home/tigergraph/tigergraph/data/gsql/users.csv

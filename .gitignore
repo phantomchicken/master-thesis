@@ -5,4 +5,6 @@ datasets/ml-32m/ratings.csv
 .vscode
 *tmp.txt
 *res.csv
-datasets/
+datasets/ml-32m
+datasets/*/ratings*.csv
+datasets/ml-10M100K/neo4j-import

@@ -30,11 +30,6 @@ OUTPUT_CSV="movie_genre_edges.csv"
 GENRES_OUTPUT="genres.csv"
 USERS_OUTPUT="users.csv"
 
-# Split ratings.csv into smaller chunks of 1,000,000 lines each (including header)
-if [ ! -d "split_ratings" ]; then
-    mkdir "split-ratings"
-fi
-
 
 echo "Splitting ratings.csv into chunks..."
 
@@ -107,3 +102,28 @@ echo "Preprocessed headers and delimiters for movies.csv, tags.csv, and ratings.
 # Generate movie-genre edge mappings using Bash
 echo "Generating movie-genre edge mappings..."
 python ../generategenres.py
+
+# TigerGraph requires the CSV files to be on its Docker container
+CONTAINER_NAME="tigergraph"
+echo "Copying CSV files to TigerGraph Docker container..."
+docker cp movies.csv "$CONTAINER_NAME":/tmp/movies.csv
+docker cp genres.csv "$CONTAINER_NAME":/tmp/genres.csv
+docker cp users.csv "$CONTAINER_NAME":/tmp/users.csv
+docker cp ratings.csv "$CONTAINER_NAME":/tmp/ratings.csv
+docker cp tags.csv "$CONTAINER_NAME":/tmp/tags.csv
+docker cp movie_genre_edges.csv "$CONTAINER_NAME":/tmp/movie_genre_edges.csv
+echo "CSV files copied to TigerGraph Docker container."
+
+echo "Copying CSV files to Memgraph Docker container..."
+CONTAINER_NAME=memgraph
+SOURCE_DIR=.
+DEST_DIR=/var/lib/memgraph
+
+for i in {00..10}
+do
+    FILE="ratings$i.csv"
+    echo "Copying $FILE to Docker container..."
+    docker cp "$SOURCE_DIR/$FILE" "$CONTAINER_NAME:$DEST_DIR/$FILE"
+done
+
+echo "CSV files copied to Memgraph Docker container."

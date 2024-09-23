@@ -9,7 +9,7 @@
 #   --overwrite-destination=true \
 #   --verbose=true
 
-docker exec -it sh
+docker exec -it neo4j sh
 
 neo4j-admin database import full --delimiter="%" \
 --nodes=Movie="/var/lib/neo4j/import/movies.csv" \
